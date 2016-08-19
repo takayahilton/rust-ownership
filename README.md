@@ -75,16 +75,16 @@ user.name; // 不正なメモリアクセス!
 
 GCがある言語ならユーザーがメモリの管理しなくてすむので安全
 がGCにはオーバーヘッドあるので低レイヤの処理ではなるべく避けたい
+
 とはいえ自分でメモリ管理するのめんどくさい！というかバグりそう
 
 
 
-
-
+# 解放処理
 変数のスコープを抜けたらその変数が持っているメモリを解放する処理をコンパイラが付け加えれば良い
 ```rust
 {
-  let one = Box::new(1);
+    let one = Box::new(1);
 }// drop(one); 
 ```
 
@@ -96,7 +96,7 @@ GCがある言語ならユーザーがメモリの管理しなくてすむので
 ```rust
 let one = Box::new(1);
 {
-  let inner_one = one;
+    let inner_one = one;
 }// drop(one); 
 ```
 
@@ -128,16 +128,62 @@ rustで構造体を定義するとデフォルトで所有権が移動する
 一つのメモリを参照するのは一つの変数だけにする事によって
 不正なアクセスは起こらない
 が　これは関数に変数を渡すと前の変数は使えなくなるという事
-```
+```rust
 fn print<A: std::fmt::Debug>(a: A) {
- println!("{:?}", a)
+    println!("{:?}", a)
 }
 
 let one = Box::new(1);
 print(one);
 print(one); //error: use of moved value
 ```
+使い辛い。。。
 
+
+いちいちmoveが起きて前の変数が使えなくなる
+と云う事態は避けたい
+
+=> どうするか
+
+
+
+# 参照とlifetime
+`&`をつけると変数を参照として借用できる
+```rust
+fn print<A: std::fmt::Debug>(a: A) {
+    println!("{:?}", a)
+}
+
+let one = Box::new(1);
+print(&one);
+print(&one);//ok!
+```
+
+参照は型としてlifetimeを持っていて
+lifetimeに違反するとコンパイルエラーになる
+```rust
+fn one()-> &u32 {
+    let one = 1;
+    &one //error: missing lifetime specifier
+}
+```
+
+
+内側のスコープで宣言したものを外側のスコープに返してるのでエラー
+
+(これはc言語でも警告でるけど)
+
+
+こっちは大丈夫
+```rust
+fn add_one(i: &u32)-> &u32 {
+    *i = *i + 1;
+    i
+}
+```
+
+
+返している参照のlifetimeが外のスコープのものと同じ
 
 
 ## 解決策
