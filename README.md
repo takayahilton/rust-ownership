@@ -159,6 +159,7 @@ print(&one);
 print(&one);//ok!
 ```
 
+
 参照は型としてlifetimeを持っていて
 lifetimeに違反するとコンパイルエラーになる
 ```rust
@@ -167,14 +168,12 @@ fn one()-> &u32 {
     &one //error: missing lifetime specifier
 }
 ```
-
-
 内側のスコープで宣言したものを外側のスコープに返してるのでエラー
 
-(これはc言語でも警告でるけど)
+(スタックで確保したポインタを返すとc言語でも警告はでるけど)
 
 
-こっちは大丈夫
+返している参照のlifetimeが外のスコープのものと同じなのでこっちは大丈夫
 ```rust
 fn add_one(i: &u32)-> &u32 {
     *i = *i + 1;
@@ -183,17 +182,51 @@ fn add_one(i: &u32)-> &u32 {
 ```
 
 
-返している参照のlifetimeが外のスコープのものと同じ
+
+## 参照を含む構造体
+参照をメンバに持つ構造体を作る
+
+Rustには複数のポインタ型があるが統一的な
+```rust
+struct Wrapper<A> {
+    a: &A
+}
+```
 
 
-## 解決策
+error: missing lifetime specifier 
+???
+
+
+こう書くのが正解
+
+
+```rust
+struct Wrapper<'a, A: 'a> {
+    a: &'a A
+}
+```
+
+
+なにこれ。。。
+
+
+`&x`という書き方は実は`&'a x`の省略　'aは寿命
+関数や変数に指定する時は推論してくれるが構造体作る時は推論してくれない
+
+
+`'a` <- lifetime 
+
+`A: 'a` <- 型引数のAの寿命を指定
+
+`a: &'a A` <- 参照の型を指定
 
 
 
-
-
-
-##まとめ
+## まとめ
+- Rustは借用とlifetimeのおかげでオーバーヘッドなしでリソースの自動管理ができる
+- 借用とlifetimeらへん学習コストは高め　慣れるまでコンパイラと戦う
+- [プログラミング言語Rust](https://rust-lang-ja.github.io/the-rust-programming-language-ja/1.6/book/README.html)を読みましょう
 
 
 
